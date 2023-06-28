@@ -40,7 +40,7 @@ app.post('/participants', (req, res) => {
             messages.push(objMessage);
             const objName = {name: name, lastStatus: Date.now()};
             users.push(objName);
-            res.sendStatus(200);
+            res.sendStatus(201);
         }
         if (users.length > 0){
             for(let a = 0; a < users.length; a++){
