@@ -26,7 +26,7 @@ function remove(){
     users = newUsers;
 }
 
-//setInterval(remove, 15000);
+setInterval(remove, 15000);
 
 app.post('/participants', (req, res) => {
     const data = req.body;
