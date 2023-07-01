@@ -21,6 +21,9 @@ function remove(){
 
     let users;
     db.collection('users').find().toArray().then(usersMongo => users = usersMongo);
+    if (users == undefined){
+        users = [];
+    }
 
     // Verifica os que serão desligados
     for (let a = 0; a < users.length; a++){
@@ -39,7 +42,7 @@ function remove(){
     }
 }
 
-//setInterval(remove, 15000);
+setInterval(remove, 15000);
 
 app.post('/participants', (req, res) => {
     const data = req.body;
@@ -48,6 +51,9 @@ app.post('/participants', (req, res) => {
 
     let users;
     db.collection('users').find().toArray().then(usersMongo => users = usersMongo);
+    if (users == undefined){
+        users = [];
+    }
 
     // Faz a validação do userName
     const { error, value } = expectedName.validate(user);
@@ -85,6 +91,9 @@ app.post('/participants', (req, res) => {
 app.get('/participants', (req, res) => {
     let users;
     db.collection('users').find().toArray().then(usersMongo => users = usersMongo)
+    if (users == undefined){
+        users = [];
+    }
     res.send(users);
 })
 
@@ -94,9 +103,15 @@ app.post('/messages', (req, res) =>{
 
     let messages;
     db.collection('messages').find().toArray().then(messagesMongo => messages = messagesMongo);
+    if (messages == undefined){
+        messages = [];
+    }
 
     let users;
     db.collection('users').find().toArray().then(usersMongo => users = usersMongo);
+    if (users == undefined){
+        users = [];
+    }
 
     // Valida o tipo dos dados
     const toTextJoi = joi.string();
@@ -131,14 +146,16 @@ app.get('/messages', (req, res) => {
     const user = req.get('User');
 
     let messages;
-    db.collection('messages').find().toArray()
-        .then(messagesMongo => messages = messagesMongo)
-        .catch();
+    db.collection('messages').find().toArray().then(messagesMongo => messages = messagesMongo)
+    if (messages == undefined){
+        messages = [];
+    }
 
     let users;
-    db.collection('users').find().toArray()
-        .then(usersMongo => users = usersMongo)
-        .catch();
+    db.collection('users').find().toArray().then(usersMongo => users = usersMongo)
+    if (users == undefined){
+        users = [];
+    }
 
     const limit = req.query.limit;
     const limitJoi = joi.number().integer().positive();
@@ -189,6 +206,9 @@ app.post('/status', (req, res) => {
 
     let users;
     db.collection('Users').find().toArray().then(usersMongo => users = usersMongo);
+    if (users == undefined){
+        users = [];
+    }
 
     // Valida o User e verifica se ele está em Users
     const userJoi = joi.string().required();
