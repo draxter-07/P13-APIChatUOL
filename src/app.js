@@ -2,46 +2,65 @@ import express from 'express'
 import cors from 'cors'
 import joi from 'joi'
 import day from 'dayjs'
-
-let users = [];
-let messages = [];
+import { MongoClient, ObjectId } from 'mongodb'
 
 const app = express();
-app.use(cors());
 app.use(express.json());
-app.listen(5000, () => console.log('Running on port 5000'));
+app.use(cors());
+
+// Estava tendo um erro ao usar localhost. Após pesquisar na internet, encontrei a solução de trocar localhost por 0.0.0.0
+const mongoClient = new MongoClient("mongodb://0.0.0.0:27017/ChatUOL");
+
+mongoClient.connect()
+    
+const db = mongoClient.db();
 
 function remove(){
     const now = Date.now();
-    const newUsers = [];
+    const deleteUsers = [];
+
+    let users;
+    db.collection('users').find().toArray().then(usersMongo => users = usersMongo);
+
+    // Verifica os que serão desligados
     for (let a = 0; a < users.length; a++){
         if (now - users[a].lastStatus <= 10){
-            newUsers.push(users[a]);
+            deleteUsers.push(users[a]);
         }
         else{
             const objMessage = {from: users[a].name, to: 'Todos', text: 'sai da sala...', type: 'status', time: day().format('HH:mm:ss')}
-            messages.push(objMessage);
+            db.collection('messages').insertOne(objMessage);
         }
     }
-    users = newUsers;
+
+    // Tira da database
+    for (let b = 0; b < users.length; b++){
+        db.collection('users').deleteOne(users[b]);
+    }
 }
 
-setInterval(remove, 15000);
+//setInterval(remove, 15000);
 
 app.post('/participants', (req, res) => {
     const data = req.body;
     const user = data.name;
-    const expectedName = joi.string();
+    const expectedName = joi.string().required();
+
+    let users;
+    db.collection('users').find().toArray().then(usersMongo => users = usersMongo);
+
     // Faz a validação do userName
     const { error, value } = expectedName.validate(user);
-    if (error == undefined && user != undefined){
+    if (error == undefined){
+
         function right(name){
             const objMessage = {from: name, to: 'Todos', text: 'entra na sala...', type: 'status', time: day().format('HH:mm:ss')};
-            messages.push(objMessage);
+            db.collection('messages').insertOne(objMessage);
             const objName = {name: name, lastStatus: Date.now()};
-            users.push(objName);
+            db.collection('users').insertOne(objName);
             res.sendStatus(201);
         }
+
         if (users.length > 0){
             for(let a = 0; a < users.length; a++){
                 if (users[a].name == user){
@@ -56,6 +75,7 @@ app.post('/participants', (req, res) => {
         else{
             right(user);
         }
+
     }
     else{
         res.sendStatus(422);
@@ -63,12 +83,21 @@ app.post('/participants', (req, res) => {
 })
 
 app.get('/participants', (req, res) => {
+    let users;
+    db.collection('users').find().toArray().then(usersMongo => users = usersMongo)
     res.send(users);
 })
 
 app.post('/messages', (req, res) =>{
     const data = req.body;
     const from = req.get('User');
+
+    let messages;
+    db.collection('messages').find().toArray().then(messagesMongo => messages = messagesMongo);
+
+    let users;
+    db.collection('users').find().toArray().then(usersMongo => users = usersMongo);
+
     // Valida o tipo dos dados
     const toTextJoi = joi.string();
     const typeJoi = joi.any().allow('message', 'private_message');
@@ -77,6 +106,7 @@ app.post('/messages', (req, res) =>{
     const { errorText, valueText } = toTextJoi.validate(data.text);
     const { errorType, valueType } = typeJoi.validate(data.type);
     const { errorFrom, valueFrom } = fromJoi.validate(from);
+
     // verifica se o from está na sala
     let foundFrom = 0;
     for (let a = 0; a < users.length; a++){
@@ -85,10 +115,11 @@ app.post('/messages', (req, res) =>{
             break;
         }
     }
+
     if (errorTo == undefined && errorText == undefined && errorType == undefined && errorFrom == undefined && foundFrom == 1){
         // adicionar time e from para o objeto
         let newObject = {from: from, to: data.to, text: data.text, type: data.type, time: day().format('HH:mm:ss')};
-        messages.push(newObject);
+        db.collection('messages').insertOne(newObject);
         res.sendStatus(201);
     }
     else{
@@ -98,13 +129,26 @@ app.post('/messages', (req, res) =>{
 
 app.get('/messages', (req, res) => {
     const user = req.get('User');
+
+    let messages;
+    db.collection('messages').find().toArray()
+        .then(messagesMongo => messages = messagesMongo)
+        .catch();
+
+    let users;
+    db.collection('users').find().toArray()
+        .then(usersMongo => users = usersMongo)
+        .catch();
+
     const limit = req.query.limit;
     const limitJoi = joi.number().integer().positive();
     const userJoi = joi.string().required;
     const { errorLimit, valueLimit } = limitJoi.validate(limit);
     const { errorUser, valueUser } = userJoi.validate(user);
+
     if (errorLimit == undefined && errorUser == undefined){
         let messagesIt = [];
+
         // Verificar todas as mensagens mandadas em Todos, para ele e por ele (privadas)
         for (let a = 0; a < messages.length; a++){
             if (messages[a].to == 'Todos' || messages[a].to == user || messages[a].from == user){
@@ -142,6 +186,10 @@ app.get('/messages', (req, res) => {
 
 app.post('/status', (req, res) => {
     const user = req.get('User');
+
+    let users;
+    db.collection('Users').find().toArray().then(usersMongo => users = usersMongo);
+
     // Valida o User e verifica se ele está em Users
     const userJoi = joi.string().required();
     const { errorUser, valueUser } = userJoi.validate(user);
@@ -152,12 +200,16 @@ app.post('/status', (req, res) => {
             break;
         }
     }
+
     if (errorUser == undefined && foundUser != -1){
         //Atualiza o lastStatus
-        users[foundUser].lastStatus = Date.now();
+        db.collection('users').deleteOne({ name: user });
+        db.collection('users').insertOne({name: user, lastStatus: Date.now()});
         res.sendStatus(200);
     }
     else{
         res.sendStatus(404);
     }
 })
+
+app.listen(5000, () => console.log('Running on port 5000'));
