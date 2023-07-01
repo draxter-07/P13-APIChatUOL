@@ -50,7 +50,7 @@ app.post('/participants', (req, res) => {
     const expectedName = joi.string().required();
 
     let users;
-    db.collection('users').find().toArray().then(usersMongo => users = usersMongo);
+    db.collection('participants').find().toArray().then(usersMongo => users = usersMongo);
     if (users == undefined){
         users = [];
     }
@@ -63,7 +63,7 @@ app.post('/participants', (req, res) => {
             const objMessage = {from: name, to: 'Todos', text: 'entra na sala...', type: 'status', time: day().format('HH:mm:ss')};
             db.collection('messages').insertOne(objMessage);
             const objName = {name: name, lastStatus: Date.now()};
-            db.collection('users').insertOne(objName);
+            db.collection('participants').insertOne(objName);
             res.sendStatus(201);
         }
 
@@ -73,7 +73,7 @@ app.post('/participants', (req, res) => {
                     res.sendStatus(409);
                     break;
                 }
-                else if (a == users.length - 1 && users[a] != user){
+                else if (a == users.length - 1 && users[a].name != user){
                     right(user);
                 }
             }
@@ -90,7 +90,7 @@ app.post('/participants', (req, res) => {
 
 app.get('/participants', (req, res) => {
     let users;
-    db.collection('users').find().toArray().then(usersMongo => users = usersMongo)
+    db.collection('participants').find().toArray().then(usersMongo => users = usersMongo)
     if (users == undefined){
         users = [];
     }
@@ -108,7 +108,7 @@ app.post('/messages', (req, res) =>{
     }
 
     let users;
-    db.collection('users').find().toArray().then(usersMongo => users = usersMongo);
+    db.collection('participants').find().toArray().then(usersMongo => users = usersMongo);
     if (users == undefined){
         users = [];
     }
@@ -152,7 +152,7 @@ app.get('/messages', (req, res) => {
     }
 
     let users;
-    db.collection('users').find().toArray().then(usersMongo => users = usersMongo)
+    db.collection('participants').find().toArray().then(usersMongo => users = usersMongo)
     if (users == undefined){
         users = [];
     }
@@ -205,7 +205,7 @@ app.post('/status', (req, res) => {
     const user = req.get('User');
 
     let users;
-    db.collection('Users').find().toArray().then(usersMongo => users = usersMongo);
+    db.collection('participants').find().toArray().then(usersMongo => users = usersMongo);
     if (users == undefined){
         users = [];
     }
@@ -223,8 +223,8 @@ app.post('/status', (req, res) => {
 
     if (errorUser == undefined && foundUser != -1){
         //Atualiza o lastStatus
-        db.collection('users').deleteOne({ name: user });
-        db.collection('users').insertOne({name: user, lastStatus: Date.now()});
+        db.collection('participants').deleteOne({ name: user });
+        db.collection('participants').insertOne({name: user, lastStatus: Date.now()});
         res.sendStatus(200);
     }
     else{
