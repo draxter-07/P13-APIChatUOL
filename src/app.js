@@ -13,10 +13,9 @@ app.use(cors());
 
 // Estava tendo um erro ao usar localhost. Após pesquisar na internet, encontrei a solução de trocar localhost por 0.0.0.0
 const mongoClient = new MongoClient(process.env.DATABASE_URL);
+var db;
 
-mongoClient.connect()
-    
-const db = mongoClient.db();
+mongoClient.connect().then(db = mongoClient.db());
 
 function remove(){
     const now = Date.now();
