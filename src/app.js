@@ -3,13 +3,16 @@ import cors from 'cors'
 import joi from 'joi'
 import day from 'dayjs'
 import { MongoClient } from 'mongodb'
+import dotenv from "dotenv"
+
+dotenv.config();
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 
 // Estava tendo um erro ao usar localhost. Após pesquisar na internet, encontrei a solução de trocar localhost por 0.0.0.0
-const mongoClient = new MongoClient("mongodb://0.0.0.0:27017/ChatUOL");
+const mongoClient = new MongoClient(process.env.DATABASE_URL);
 
 mongoClient.connect()
     
